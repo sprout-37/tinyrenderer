@@ -97,7 +97,7 @@ Vec3f world2screen(Vec3f v)
 
 int main(int argc, char **argv)
 {
-    if (2 == argc)
+    if (2 == argc) // 如果输入参数，就读取用户输入的参数；如果没有参数，则默认读取obj/african_head.obj
     {
         model = new Model(argv[1]);
     }
@@ -110,14 +110,27 @@ int main(int argc, char **argv)
     for (int i = width * height; i--; zbuffer[i] = -std::numeric_limits<float>::max())
         ;
 
-    TGAImage image(width, height, TGAImage::RGB);
-    for (int i = 0; i < model->nfaces(); i++)
+    TGAImage image(width, height, TGAImage::RGB); // 创建一张RGB图像
+
+    Vec3f light_dir(0, 0, -1); // define light_dir
+    Vec3f world_coords[3];     // 用于保存三角形面的世界坐标
+
+    for (int i = 0; i < model->nfaces(); i++) // 遍历所有面
     {
-        std::vector<int> face = model->face(i);
-        Vec3f pts[3];
-        for (int i = 0; i < 3; i++)
-            pts[i] = world2screen(model->vert(face[i]));
-        triangle(pts, zbuffer, image, TGAColor(rand() % 255, rand() % 255, rand() % 255, 255));
+        std::vector<int> face = model->face(i); // 获取当前面的点索引
+        Vec3f pts[3];                           // 定义三角形的三个顶点
+        for (int j = 0; j < 3; j++)
+        {
+            Vec3f v = model->vert(face[j]);              // // 获取第j个顶点的坐标
+            pts[j] = world2screen(model->vert(face[j])); // 获取三角形的三个顶点屏幕坐标
+            world_coords[j] = v;                         // 保存顶点坐标到世界坐标数组中
+        }
+
+        Vec3f n = cross(world_coords[2] - world_coords[0], world_coords[1] - world_coords[0]); // 计算三角形面的法向量
+        n.normalize();                                                                         // 将法向量归一化
+        float intensity = n * light_dir;                                                       // 计算光照强度
+
+        triangle(pts, zbuffer, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255)); // 绘制三角形
     }
 
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
